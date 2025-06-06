@@ -135,16 +135,17 @@
             'Zettle': './logos/zettle.png',
             'Billpocket': './logos/billpocket.png',
             'Kiwi': './logos/kiwi.png',
-            'Sr. Pago de Konfio': './logos/konfio.png',
+            'Sr. Pago de Konfío': './logos/konfio.png',
             'BBVA': './logos/bbva.png',
             'Banorte': './logos/banorte.png',
-            '¡Acepta de Banamex': './logos/banamex.png'
+            '¡Acepta Banamex': './logos/banamex.png'
         };
 
-        // Cargar datos desde el CSV de Google Sheets usando PapaParse
+        // Cargar datos desde el CSV de Google Sheets usando PapaParse con manejo de codificación
         Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vS0w-nnrjf2F8vsc_Gyj43VPOcehhksNQin18rrUrTaz7sU7gN91MQBceO-eu8zehgEtNfF6gB-SY2F/pub?gid=0&single=true&output=csv', {
             download: true,
             header: true,
+            encoding: 'UTF-8', // Forzar UTF-8
             skipEmptyLines: true,
             complete: function(results) {
                 if (results.errors.length > 0) {
@@ -152,22 +153,24 @@
                     alert('Error al cargar el archivo de comisiones. Verifica el formato del CSV y asegúrate de que sea accesible.');
                     // Usar valores predeterminados si falla
                     providers = [
-                        { name: 'Mercado Pago', commission: '0.035', transferTime: 'Inmediato', accountType: 'Cuenta Mercado Pago', support: 'Bueno', advantages: ['Integración con Mercado Libre - Dinero al instante'], disadvantages: ['Soporte inconsistente'] },
-                        { name: 'Clip', commission: '0.036', transferTime: '24 horas', accountType: 'Cuenta bancaria con CLABE', support: '24-7', advantages: ['Movilidad-multicanal facilitada'], disadvantages: ['Comisión más alta'] }
+                        { name: 'Mercado Pago', commission: '0.035', transferTime: 'Inmediato', accountType: 'Cuenta Mercado Pago', support: 'Bueno-pero mixto', advantages: ['Integración con Mercado Libre -Dinero al instante'], disadvantages: ['Soporte inconsistente'] },
+                        { name: 'Clip', commission: '0.036', transferTime: '24 horas', accountType: 'Cuenta bancaria mexicana con CLABE', support: '24-7', advantages: ['Movilidad-multicanal facilitada'], disadvantages: ['Comisión más alta'] }
                     ];
                     loadHistory();
                     updateRatesInfo();
                     return;
                 }
-                providers = results.data.map(row => ({
-                    name: row.Terminal || '',
-                    commission: row.comision || '0',
-                    transferTime: row['tiempo de transferencia'] || 'No disponible',
-                    accountType: row['tipo de cuenta'] || 'No disponible',
-                    support: row['soporte tecnico'] || 'No disponible',
-                    advantages: row['ventajas clave'] ? row['ventajas clave'].split(',').map(a => a.trim()) : ['No disponible'],
-                    disadvantages: row['desventajas clave'] ? row['desventajas clave'].split(',').map(d => d.trim()) : ['No disponible']
-                })).filter(p => p.name && p.commission);
+                providers = results.data.map(row => {
+                    return {
+                        name: row.Terminal || row['Terminal'] || row['terminal'] || '',
+                        commission: row.comision || row['comision'] || row['Comision'] || '0',
+                        transferTime: row['tiempo de transferencia'] || row['Tiempo de transferencia'] || row['tiempo_de_transferencia'] || 'No disponible',
+                        accountType: row['tipo de cuenta'] || row['Tipo de cuenta'] || row['tipo_de_cuenta'] || 'No disponible',
+                        support: row['soporte tecnico'] || row['Soporte tecnico'] || row['soporte_tecnico'] || 'No disponible',
+                        advantages: row['ventajas clave'] ? row['ventajas clave'].split(',').map(a => a.trim()) : ['No disponible'],
+                        disadvantages: row['desventajas clave'] ? row['desventajas clave'].split(',').map(d => d.trim()) : ['No disponible']
+                    };
+                }).filter(p => p.name && p.commission);
                 if (providers.length === 0) {
                     alert('No se encontraron datos válidos en el archivo de comisiones. Verifica el formato del CSV.');
                     return;
