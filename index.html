@@ -3,221 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Comisiones de Terminales de Venta</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Calculadora de Comisiones</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        body { background-color: #f8f9fa; font-family: Arial, sans-serif; }
-        .container { max-width: 800px; margin-top: 20px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .terminal-logo { width: 40px; height: 40px; margin-right: 10px; }
-        .result-item { margin-bottom: 15px; }
-        .net-amount { margin-left: auto; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #1a3c6c;
+            text-align: center;
+        }
+        .input-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="number"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 200px;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+        #calculateBtn {
+            background-color: #4CAF50;
+        }
+        #whatsappBtn {
+            background-color: #25D366;
+            margin-right: 10px;
+        }
+        #pdfBtn {
+            background-color: #2196F3;
+        }
+        #results {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 20px;
+        }
+        .result-container {
+            display: flex;
+            align-items: center;
+            background-color: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .result-container img {
+            width: 50px;
+            height: 50px;
+            margin-right: 20px;
+        }
+        .result-details {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+        }
+        .result-details span {
+            margin-right: 20px;
+        }
+        .commission, .iva, .total {
+            color: #87CEEB; /* Azul claro y suave */
+        }
+        .net-amount {
+            color: #90EE90; /* Verde sutil */
+            font-weight: bold;
+        }
+        #commission-list {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 800px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        #commission-list h3 {
+            margin-top: 0;
+            color: #1a3c6c;
+        }
+        #commission-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #commission-list li {
+            padding: 5px 0;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="text-center mb-4">Calculadora de Comisiones de Terminales de Venta</h1>
-
-        <div class="mb-3">
-            <label for="amount" class="form-label"><strong>Ingresa la cantidad a cobrar</strong></label>
-            <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="number" class="form-control" id="amount" placeholder="Ej: 1000" step="0.01">
-                <button class="btn btn-success" onclick="calculate()">Calcular</button>
-            </div>
-        </div>
-
-        <div id="results" class="mt-4"></div>
-
-        <div class="mt-4 d-flex justify-content-between">
-            <button id="shareBtn" class="btn btn-primary" style="display:none;" onclick="shareResults()">Compartir por WhatsApp</button>
-            <button id="downloadBtn" class="btn btn-secondary" style="display:none;">Descargar PDF</button>
-        </div>
-
-        <div class="mt-4">
-            <h2 class="text-center">Historial de Cálculos</h2>
-            <ul id="historyList" class="list-group"></ul>
-            <button class="btn btn-danger mt-2" onclick="clearHistory()">Limpiar Historial</button>
-        </div>
+    <h1>Calculadora de Comisiones de Terminales de Venta</h1>
+    <div class="input-section">
+        <input type="number" id="amount" placeholder="Ingresa el monto de la venta" step="0.01">
+        <button id="calculateBtn">Calcular</button>
     </div>
+    <div id="results"></div>
+    <div>
+        <button id="whatsappBtn">Compartir por WhatsApp</button>
+        <button id="pdfBtn">Descargar PDF</button>
+    </div>
+    <div id="commission-list"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
-        let providers = [];
-        const logoUrls = {
-            'Mercado Pago': './logos/mercado_pago.png',
-            'Clip': './logos/clip.png',
-            'Uala Bis': './logos/uala_bis.png',
-            'Zettle': './logos/zettle.png',
-            'Billpocket': './logos/billpocket.png',
-            'KIWI': './logos/kiwi.png',
-            'Sr. Pago de Konfio': './logos/konfio.png',
-            'BBVA': './logos/bbva.png',
-            'Banorte': './logos/banorte.png',
-            'Acepta (Banamex)': './logos/banamex.png'
-        };
+        const IVA_RATE = 0.16; // 16% IVA en México
+        let commissionData = {};
 
-        // Cargar datos desde el CSV de Google Sheets
-        Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vS0w-nnrjf2F8vsc_Gyj43VPOcehhksNQin18rrUrTaz7sU7gN91MQBceO-eu8zehgEtNfF6gB-SY2F/pub?gid=528550114&single=true&output=csv', {
+        // Cargar datos del CSV
+        Papa.parse("commissions.csv", {
             download: true,
             header: true,
-            skipEmptyLines: true,
             complete: function(results) {
-                if (results.errors.length > 0) {
-                    console.error('Errores al parsear el CSV:', results.errors);
-                    alert('Error al cargar el archivo de comisiones.');
-                    return;
-                }
-                providers = results.data.map(row => ({
-                    name: row.Terminal || '',
-                    commission: row['Comisión'] || '0'
-                })).filter(p => p.name && p.commission);
-                if (providers.length === 0) {
-                    alert('No se encontraron datos válidos en el CSV.');
-                }
-                loadHistory();
+                results.data.forEach(row => {
+                    commissionData[row.Terminal] = {
+                        rate: parseFloat(row.Comisión),
+                        logo: row.Logo // Asumimos que el CSV incluye URLs de logos
+                    };
+                });
+                displayCommissionList();
             },
-            error: function(error) {
-                console.error('Error al cargar el CSV:', error);
-                alert('Error al cargar el archivo de comisiones.');
+            error: function() {
+                alert("No se pudo cargar el archivo de comisiones. Verifica el CSV.");
             }
         });
 
-        function calculate() {
-            const amount = parseFloat(document.getElementById('amount').value);
-            const resultsDiv = document.getElementById('results');
-            const shareBtn = document.getElementById('shareBtn');
-            const downloadBtn = document.getElementById('downloadBtn');
+        document.getElementById("calculateBtn").addEventListener("click", calculateCommissions);
+        document.getElementById("whatsappBtn").addEventListener("click", shareWhatsApp);
+        document.getElementById("pdfBtn").addEventListener("click", downloadPDF);
 
+        function calculateCommissions() {
+            const amount = parseFloat(document.getElementById("amount").value);
             if (isNaN(amount) || amount <= 0) {
-                resultsDiv.innerHTML = '<div class="alert alert-danger">Por favor, ingresa un monto válido mayor a $0.</div>';
-                shareBtn.style.display = 'none';
-                downloadBtn.style.display = 'none';
+                alert("Por favor, ingresa un monto válido.");
                 return;
             }
 
-            if (providers.length === 0) {
-                resultsDiv.innerHTML = '<div class="alert alert-warning">Los datos de las comisiones aún no están disponibles.</div>';
-                shareBtn.style.display = 'none';
-                downloadBtn.style.display = 'none';
-                return;
-            }
+            const resultsDiv = document.getElementById("results");
+            resultsDiv.innerHTML = "";
 
-            let resultsHtml = '<h2 class="text-center">Resultados:</h2>';
-            const resultsData = [];
-            providers.forEach(provider => {
-                const commission = provider.commission;
-                let commissionValue;
-                if (commission.includes('-')) {
-                    const [min, max] = commission.split('-').map(v => parseFloat(v.trim()));
-                    commissionValue = (min + max) / 2;
-                } else {
-                    commissionValue = parseFloat(commission);
-                }
-                const commissionAmount = amount * commissionValue;
-                const iva = commissionAmount * 0.16;
-                const totalCommission = commissionAmount + iva;
+            for (const [terminal, data] of Object.entries(commissionData)) {
+                const commission = amount * data.rate;
+                const iva = commission * IVA_RATE;
+                const totalCommission = commission + iva;
                 const netAmount = amount - totalCommission;
 
-                resultsHtml += `
-                    <div class="card result-item">
-                        <div class="card-body d-flex align-items-center">
-                            <img src="${logoUrls[provider.name] || ''}" class="terminal-logo" alt="${provider.name} logo">
-                            <div class="result-details">
-                                <div>
-                                    <strong>${provider.name}:</strong><br>
-                                    Comisión: $${commissionAmount.toFixed(2)}<br>
-                                    IVA: $${iva.toFixed(2)}<br>
-                                    Comisión total: $${totalCommission.toFixed(2)}<br>
-                                </div>
-                            </div>
-                            <div class="net-amount net">
-                                <strong>Monto neto:</strong><br>$${netAmount.toFixed(2)}
-                            </div>
-                        </div>
+                const container = document.createElement("div");
+                container.className = "result-container";
+                container.innerHTML = `
+                    <img src="${data.logo}" alt="${terminal} Logo">
+                    <div class="result-details">
+                        <span class="commission">Comisión: $${commission.toFixed(2)}</span>
+                        <span class="iva">IVA: $${iva.toFixed(2)}</span>
+                        <span class="total">Comisión total: $${totalCommission.toFixed(2)}</span>
+                        <span class="net-amount">Monto neto: $${netAmount.toFixed(2)}</span>
                     </div>
                 `;
-                resultsData.push({
-                    name: provider.name,
-                    commission: commissionAmount.toFixed(2),
-                    iva: iva.toFixed(2),
-                    total: totalCommission.toFixed(2),
-                    net: netAmount.toFixed(2)
-                });
-            });
-
-            resultsDiv.innerHTML = resultsHtml;
-            shareBtn.style.display = 'block';
-            downloadBtn.style.display = 'block';
-
-            const timestamp = new Date().toLocaleString();
-            const historyEntry = { amount, results: resultsData, timestamp };
-            saveToHistory(historyEntry);
-            loadHistory();
-
-            downloadBtn.onclick = () => {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                doc.setFont('Helvetica');
-                doc.setFontSize(16);
-                doc.text('Calculadora de Comisiones', 20, 20);
-                doc.setFontSize(12);
-                doc.text(`Monto: $${amount}`, 20, 30);
-                let y = 40;
-                resultsData.forEach(result => {
-                    doc.addImage(logoUrls[result.name] || '', 'PNG', 20, y, 10, 10);
-                    doc.text(`${result.name}:`, 35, y + 5);
-                    y += 5;
-                    doc.text(`Comisión: $${result.commission}`, 35, y);
-                    y += 5;
-                    doc.text(`IVA: $${result.iva}`, 35, y);
-                    y += 5;
-                    doc.text(`Total: $${result.total}`, 35, y);
-                    y += 5;
-                    doc.text(`Neto: $${result.net}`, 35, y);
-                    y += 15;
-                });
-                doc.save(`Resultados_${timestamp.replace(/[, :]/g, '-')}.pdf`);
-            };
+                resultsDiv.appendChild(container);
+            }
         }
 
-        function shareResults() {
-            const amount = document.getElementById('amount').value;
-            const timestamp = new Date().toLocaleString();
-            const resultsData = providers.map(provider => {
-                const commission = provider.commission.includes('-') ? 
-                    ((parseFloat(provider.commission.split('-')[0]) + parseFloat(provider.commission.split('-')[1])) / 2) : 
-                    parseFloat(provider.commission);
-                const commissionAmount = amount * commission;
-                const iva = commissionAmount * 0.16;
-                const total = commissionAmount + iva;
-                const net = amount - total;
-                return `${provider.name}: Comisión: $${commissionAmount.toFixed(2)}, IVA: $${iva.toFixed(2)}, Total: $${total.toFixed(2)}, Neto: $${net.toFixed(2)}`;
-            }).join('\n');
-            const message = `Resultados para $${amount} (${timestamp}):\n${resultsData}`;
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank');
+        function shareWhatsApp() {
+            const amount = parseFloat(document.getElementById("amount").value);
+            if (isNaN(amount)) return;
+
+            let message = `Resultados de la Calculadora de Comisiones para $${amount}:\n\n`;
+            for (const [terminal, data] of Object.entries(commissionData)) {
+                const commission = amount * data.rate;
+                const iva = commission * IVA_RATE;
+                const totalCommission = commission + iva;
+                const netAmount = amount - totalCommission;
+                message += `${terminal}:\nComisión: $${commission.toFixed(2)}\nIVA: $${iva.toFixed(2)}\nComisión total: $${totalCommission.toFixed(2)}\nMonto neto: $${netAmount.toFixed(2)}\n\n`;
+            }
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, "_blank");
         }
 
-        function saveToHistory(entry) {
-            let history = JSON.parse(localStorage.getItem('commissionHistory') || '[]');
-            history.unshift(entry);
-            localStorage.setItem('commissionHistory', JSON.stringify(history));
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const amount = parseFloat(document.getElementById("amount").value);
+            if (isNaN(amount)) return;
+
+            doc.setFontSize(16);
+            doc.text("Calculadora de Comisiones", 20, 20);
+            doc.setFontSize(12);
+            doc.text(`Monto: $${amount.toFixed(2)}`, 20, 30);
+
+            let y = 40;
+            for (const [terminal, data] of Object.entries(commissionData)) {
+                const commission = amount * data.rate;
+                const iva = commission * IVA_RATE;
+                const totalCommission = commission + iva;
+                const netAmount = amount - totalCommission;
+
+                doc.text(`${terminal}:`, 20, y);
+                doc.text(`Comisión: $${commission.toFixed(2)}`, 30, y + 5);
+                doc.text(`IVA: $${iva.toFixed(2)}`, 30, y + 10);
+                doc.text(`Comisión total: $${totalCommission.toFixed(2)}`, 30, y + 15);
+                doc.text(`Monto neto: $${netAmount.toFixed(2)}`, 30, y + 20);
+                y += 30;
+            }
+
+            doc.save("comisiones.pdf");
         }
 
-        function loadHistory() {
-            const historyList = document.getElementById('historyList');
-            let history = JSON.parse(localStorage.getItem('commissionHistory') || '[]');
-            historyList.innerHTML = history.map((entry, index) => `
-                <li class="list-group-item">
-                    Cálculo #${index + 1} - $${entry.amount} (${entry.timestamp})<br>
-                    ${entry.results.map(r => `${r.name}: Neto: $${r.net}`).join('<br>')}
-                </li>
-            `).join('');
-        }
+        function displayCommissionList() {
+            const listDiv = document.getElementById("commission-list");
+            listDiv.innerHTML = "<h3>Porcentaje de Comisiones por Terminal</h3><ul></ul>";
+            const ul = listDiv.querySelector("ul");
 
-        function clearHistory() {
-            localStorage.removeItem('commissionHistory');
-            loadHistory();
+            for (const [terminal, data] of Object.entries(commissionData)) {
+                const percentage = (data.rate * 100).toFixed(2);
+                const li = document.createElement("li");
+                li.textContent = `${terminal}: ${percentage}%`;
+                ul.appendChild(li);
+            }
         }
     </script>
 </body>
