@@ -123,6 +123,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         const { jsPDF } = window.jspdf;
         let providers = [];
@@ -133,37 +135,47 @@
             'Zettle': './logos/zettle.png',
             'Billpocket': './logos/billpocket.png',
             'Kiwi': './logos/kiwi.png',
-            'Sr.Pago de Konfio': './logos/konfio.png',
+            'Sr. Pago de Konfio': './logos/konfio.png',
             'BBVA': './logos/bbva.png',
             'Banorte': './logos/banorte.png',
             '¡Acepta de Banamex': './logos/banamex.png'
         };
 
-        // Cargar datos desde el CSV de Google Sheets
-        fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vS0w-nnrjf2F8vsc_Gyj43VPOcehhksNQin18rrUrTaz7sU7gN91MQBceO-eu8zehgEtNfF6gB-SY2F/pub?gid=0&single=true&output=csv')
-            .then(response => response.text())
-            .then(csvText => {
-                const rows = csvText.split('\n').slice(1);
-                providers = rows.map(row => {
-                    const [terminal, commission, transferTime, accountType, support, advantages, disadvantages] = row.split(',');
-                    const parsedCommission = commission.trim();
-                    return {
-                        name: terminal.trim(),
-                        commission: parsedCommission, // Mantener el rango o valor tal como está
-                        transferTime: transferTime.trim(),
-                        accountType: accountType.trim(),
-                        support: support.trim(),
-                        advantages: advantages.split(',').map(a => a.trim()),
-                        disadvantages: disadvantages.split(',').map(d => d.trim())
-                    };
-                }).filter(p => p.name);
+        // Cargar datos desde el CSV de Google Sheets usando PapaParse
+        Papa.parse('https://docs.google.com/spreadsheets/d/e/2PACX-1vS0w-nnrjf2F8vsc_Gyj43VPOcehhksNQin18rrUrTaz7sU7gN91MQBceO-eu8zehgEtNfF6gB-SY2F/pub?gid=0&single=true&output=csv', {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                if (results.errors.length > 0) {
+                    console.error('Errores al parsear el CSV:', results.errors);
+                    alert('Error al cargar el archivo de comisiones. Verifica el formato del CSV y asegúrate de que sea accesible.');
+                    // Usar valores predeterminados si falla
+                    providers = [
+                        { name: 'Mercado Pago', commission: '0.035', transferTime: 'Inmediato', accountType: 'Cuenta Mercado Pago', support: 'Bueno', advantages: ['Integración con Mercado Libre - Dinero al instante'], disadvantages: ['Soporte inconsistente'] },
+                        { name: 'Clip', commission: '0.036', transferTime: '24 horas', accountType: 'Cuenta bancaria con CLABE', support: '24-7', advantages: ['Movilidad-multicanal facilitada'], disadvantages: ['Comisión más alta'] }
+                    ];
+                    loadHistory();
+                    updateRatesInfo();
+                    return;
+                }
+                providers = results.data.map(row => ({
+                    name: row.Terminal || '',
+                    commission: row.comision || '0',
+                    transferTime: row['tiempo de transferencia'] || 'No disponible',
+                    accountType: row['tipo de cuenta'] || 'No disponible',
+                    support: row['soporte tecnico'] || 'No disponible',
+                    advantages: row['ventajas clave'] ? row['ventajas clave'].split(',').map(a => a.trim()) : ['No disponible'],
+                    disadvantages: row['desventajas clave'] ? row['desventajas clave'].split(',').map(d => d.trim()) : ['No disponible']
+                })).filter(p => p.name && p.commission);
+                if (providers.length === 0) {
+                    alert('No se encontraron datos válidos en el archivo de comisiones. Verifica el formato del CSV.');
+                    return;
+                }
                 loadHistory();
                 updateRatesInfo();
-            })
-            .catch(error => {
-                console.error('Error al cargar el CSV:', error);
-                alert('No se pudo cargar los datos de las comisiones. Por favor, intenta de nuevo más tarde.');
-            });
+            }
+        });
 
         function updateRatesInfo() {
             const ratesInfo = document.getElementById('ratesInfo');
@@ -202,17 +214,7 @@
             let resultsHtml = '<h2 class="text-center">Resultados:</h2>';
             const resultsData = [];
             providers.forEach(provider => {
-                const commission = provider.commission;
-                let commissionValue = parseFloat(commission);
-                if (isNaN(commissionValue)) {
-                    // Si es un rango, tomar el promedio para el cálculo
-                    const [min, max] = commission.split('-').map(v => parseFloat(v.trim()));
-                    if (!isNaN(min) && !isNaN(max)) {
-                        commissionValue = (min + max) / 2;
-                    } else {
-                        commissionValue = 0;
-                    }
-                }
+                const commissionValue = parseFloat(provider.commission);
                 const commissionAmount = amount * commissionValue;
                 const iva = commissionAmount * 0.16;
                 const totalCommission = commissionAmount + iva;
