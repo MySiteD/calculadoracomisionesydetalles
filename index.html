@@ -33,25 +33,29 @@
             width: 80px;
             height: 80px;
             margin-right: 20px;
-            object-fit: contain;
+            object-fit: scale-down;
         }
         .result-details {
             flex-grow: 1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: wrap-reverse;
         }
         .result-details span {
-            margin-right: 7px;
-            min-width: 120px;
+            margin-right: 50px;
+            min-width: 200px;
             text-align: right;
         }
-        .commission, .iva, .total {
-            color: #87CEEB; /* Azul claro y suave */
+        .commission, .iva, {
+            color: #46d6e0; /* Azul tono medio */
+        }
+         .total {
+            color: #3ec1ca; /* Azul obscuro */
+            font-weight: bold;
         }
         .net-amount {
-            color: #90EE90; /* Verde sutil */
+            color: #49cf76; /* Verde tono medio */
             font-weight: bold;
         }
         #shareBtn {
