@@ -47,7 +47,7 @@
             min-width: 200px;
             text-align: right;
         }
-        .commission, .iva, {
+        .commission, .iva {
             color: #46d6e0; /* Azul tono medio */
         }
          .total {
@@ -224,8 +224,8 @@
                 resultsData.push({
                     name: provider.name,
                     commission: commissionAmount.toFixed(2),
-                    iva: iva.toFixed(2),
                     total: totalCommission.toFixed(2),
+                    iva: iva.toFixed(2),                    
                     net: netAmount.toFixed(2)
                 });
             });
