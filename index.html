@@ -39,7 +39,7 @@
             flex-grow: 1;
             display: flex;
             justify-content: space-between;
-            align-items: right;
+            align-items: flex-end; /* Corrección de 'right' a 'flex-end' */
             flex-wrap: wrap;
         }
         .result-details span {
@@ -50,8 +50,8 @@
         .commission, .iva {
             color: #8aa2a7; /* Azul tono medio */
         }
-         .total {
-            color: #3ec1ca; /* Azul obscuro */
+        .total {
+            color: #3ec1ca; /* Azul oscuro */
             font-weight: bold;
         }
         .net-amount {
@@ -253,21 +253,42 @@
                 let y = 40;
                 resultsData.forEach(result => {
                     if (logoUrls[result.name]) {
-                        doc.addImage(logoUrls[result.name], 'PNG', 20, y, 10, 10);
+                        // Ajuste para imágenes locales en PDF
+                        const img = new Image();
+                        img.src = logoUrls[result.name];
+                        img.onload = () => {
+                            doc.addImage(img, 'PNG', 20, y, 10, 10);
+                            doc.text(`${result.name}:`, 35, y + 5);
+                            doc.setTextColor(138, 162, 167); // #8aa2a7
+                            doc.text(`Comisión: $${result.commission}`, 35, y + 10);
+                            doc.text(`IVA: $${result.iva}`, 35, y + 15);
+                            doc.setTextColor(62, 193, 202); // #3ec1ca
+                            doc.text(`Comisión total: $${result.total}`, 35, y + 20);
+                            doc.setTextColor(133, 208, 123); // #85d07b
+                            doc.text(`Monto neto: $${result.net}`, 150, y + 10, { align: 'right' });
+                            doc.setTextColor(0, 0, 0); // Resetear color
+                            y += 30;
+                            if (y > 280) {
+                                doc.addPage();
+                                y = 20;
+                            }
+                        };
+                    } else {
+                        doc.text(`${result.name}:`, 20, y + 5);
+                        doc.setTextColor(138, 162, 167); // #8aa2a7
+                        doc.text(`Comisión: $${result.commission}`, 35, y + 10);
+                        doc.text(`IVA: $${result.iva}`, 35, y + 15);
+                        doc.setTextColor(62, 193, 202); // #3ec1ca
+                        doc.text(`Comisión total: $${result.total}`, 35, y + 20);
+                        doc.setTextColor(133, 208, 123); // #85d07b
+                        doc.text(`Monto neto: $${result.net}`, 150, y + 10, { align: 'right' });
+                        doc.setTextColor(0, 0, 0); // Resetear color
+                        y += 30;
                     }
-                    doc.text(`${result.name}:`, 35, y + 5);
-                    doc.setTextColor(135, 206, 235); // Azul claro
-                    doc.text(`Comisión: $${result.commission}`, 35, y + 10);
-                    doc.text(`IVA: $${result.iva}`, 35, y + 15);
-                    doc.text(`Comisión total: $${result.total}`, 35, y + 20);
-                    doc.setTextColor(144, 238, 144); // Verde sutil
-                    doc.text(`Monto neto: $${result.net}`, 150, y + 10, { align: 'right' });
-                    doc.setTextColor(0, 0, 0); // Resetear color
-                    y += 30;
                 });
                 const currentDate = new Date().toLocaleString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
                 doc.text(`Generado el: ${currentDate}`, 20, 280);
-                doc.save(`Resultados_Comisiones_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`);
+                doc.save(`Resultados_Comisiones_${new Date().toISOString().replace(/[:.]/g, '-')}.pdf');
             };
         }
     </script>
