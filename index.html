@@ -39,7 +39,7 @@
             flex-grow: 1;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end; /* Corrección de 'right' a 'flex-end' */
+            align-items: flex-end;
             flex-wrap: wrap;
         }
         .result-details span {
@@ -253,7 +253,6 @@
                 let y = 40;
                 resultsData.forEach(result => {
                     if (logoUrls[result.name]) {
-                        // Ajuste para imágenes locales en PDF
                         const img = new Image();
                         img.src = logoUrls[result.name];
                         img.onload = () => {
@@ -272,6 +271,19 @@
                                 doc.addPage();
                                 y = 20;
                             }
+                        };
+                        img.onerror = () => {
+                            console.error(`Error cargando imagen para ${result.name}`);
+                            doc.text(`${result.name}:`, 20, y + 5);
+                            doc.setTextColor(138, 162, 167); // #8aa2a7
+                            doc.text(`Comisión: $${result.commission}`, 35, y + 10);
+                            doc.text(`IVA: $${result.iva}`, 35, y + 15);
+                            doc.setTextColor(62, 193, 202); // #3ec1ca
+                            doc.text(`Comisión total: $${result.total}`, 35, y + 20);
+                            doc.setTextColor(133, 208, 123); // #85d07b
+                            doc.text(`Monto neto: $${result.net}`, 150, y + 10, { align: 'right' });
+                            doc.setTextColor(0, 0, 0); // Resetear color
+                            y += 30;
                         };
                     } else {
                         doc.text(`${result.name}:`, 20, y + 5);
